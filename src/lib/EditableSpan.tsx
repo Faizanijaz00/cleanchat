@@ -74,8 +74,8 @@ export function EditableSpan({
           ;(e.currentTarget as HTMLElement).blur()
         }
       }}
-      onMouseDown={(e) => e.stopPropagation()} // don't initiate parent drag
-      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => { if (!disabled) e.stopPropagation() }}
+      onClick={(e) => { if (!disabled) e.stopPropagation() }}
       draggable={false}
     >
       {value}
