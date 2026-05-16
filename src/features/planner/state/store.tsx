@@ -2,14 +2,15 @@ import { createContext, useContext, useEffect, useMemo, useReducer, useRef, type
 import { uid } from '../../../lib/uid'
 import {
   AVATAR_COLORS,
-  fetchPlannerSeed,
+  getPlannerSeed,
   loadPlannerStateRaw,
   runFactoryMigration,
   sampleState,
   savePlannerState,
   seedTeamChannelsOnce,
 } from './storage'
-import type { Channel, Group, PlannerState, RatingKey } from './types'
+import { PLANNER_SEED_VERSION } from './seed'
+import { PLANNER_SEED_VERSION_KEY, type Channel, type Group, type PlannerState, type RatingKey } from './types'
 
 type DragSource = { ownerId: string; index: number }
 
@@ -318,7 +319,9 @@ export function PlannerStoreProvider({ children }: { children: ReactNode }) {
 
   const [state, dispatch] = useReducer(reducer, undefined as unknown as PlannerState, () => {
     const existing = loadPlannerStateRaw()
-    return seedTeamChannelsOnce(existing ?? sampleState())
+    if (existing) return seedTeamChannelsOnce(existing)
+    const seeded = getPlannerSeed()
+    return seedTeamChannelsOnce(seeded ?? sampleState())
   })
 
   // Persist on every change.
@@ -326,16 +329,15 @@ export function PlannerStoreProvider({ children }: { children: ReactNode }) {
     savePlannerState(state)
   }, [state])
 
-  // If localStorage was empty on first load, try to seed from a bundled JSON
-  // (public/data/planner.json). Falls back silently if missing.
+  // Force-replace from the hard-coded PLANNER_SEED when its version differs from
+  // the value stamped in localStorage. Runs once on mount; after applying, we stamp
+  // the new version so subsequent reloads don't wipe the user's edits.
   useEffect(() => {
-    if (!wasLocalStorageEmptyRef.current) return
-    let cancelled = false
-    fetchPlannerSeed().then((seeded) => {
-      if (cancelled || !seeded) return
-      dispatch({ type: 'replace', state: seedTeamChannelsOnce(seeded) })
-    })
-    return () => { cancelled = true }
+    const applied = localStorage.getItem(PLANNER_SEED_VERSION_KEY)
+    if (applied === PLANNER_SEED_VERSION) return
+    const seeded = getPlannerSeed()
+    if (seeded) dispatch({ type: 'replace', state: seedTeamChannelsOnce(seeded) })
+    localStorage.setItem(PLANNER_SEED_VERSION_KEY, PLANNER_SEED_VERSION)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

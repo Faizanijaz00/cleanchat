@@ -38,3 +38,4 @@ export type PlannerState = {
 }
 
 export const PLANNER_STORAGE_KEY = 'telegram-planner-v1'
+export const PLANNER_SEED_VERSION_KEY = 'telegram-planner-seed-version'

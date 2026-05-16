@@ -1,4 +1,5 @@
 import { uid } from '../../../lib/uid'
+import { PLANNER_SEED } from './seed'
 import { PLANNER_STORAGE_KEY, type PlannerState, type Group, type BoardPage, type Channel } from './types'
 
 export const AVATAR_COLORS = [
@@ -128,14 +129,11 @@ export function loadPlannerState(): PlannerState {
   return loadPlannerStateRaw() ?? sampleState()
 }
 
-// Try to fetch a bundled seed file (public/data/planner.json). Returns the migrated state on success.
-export async function fetchPlannerSeed(): Promise<PlannerState | null> {
+// Return the hard-coded planner seed bundled in source.
+export function getPlannerSeed(): PlannerState | null {
   try {
-    const res = await fetch(`${import.meta.env.BASE_URL}data/planner.json`, { cache: 'no-cache' })
-    if (!res.ok) return null
-    const data = await res.json()
-    if (!data || typeof data !== 'object' || !Array.isArray(data.groups)) return null
-    return migrate(data)
+    // Dynamic require avoided — the seed is imported as a normal ES module by the store.
+    return migrate(structuredClone(PLANNER_SEED as unknown as Record<string, unknown>))
   } catch {
     return null
   }
