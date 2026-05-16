@@ -130,16 +130,21 @@ export function Inbox() {
         {selectedChannelId && (
           sortMode ? (
             <button className="sort-btn exit" onClick={exitSort} title="Exit sort mode (Esc)">
-              ✕ Exit sort
+              ✕ Exit sort mode
             </button>
           ) : (
             <button
               className="sort-btn"
               onClick={enterSort}
               disabled={items.length === 0}
-              title={items.length === 0 ? 'Nothing to sort' : 'Start sorting'}
+              title={
+                items.length === 0
+                  ? 'Nothing to sort — add items first'
+                  : 'Sort items into categories one-by-one using number keys'
+              }
             >
-              ⚡ Sort {items.length > 0 ? `(${items.length})` : ''}
+              ⚡ Sort into categories
+              {items.length > 0 && <span className="sort-btn-count">{items.length}</span>}
             </button>
           )
         )}

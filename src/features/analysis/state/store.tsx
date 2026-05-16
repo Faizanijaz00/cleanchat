@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react'
 import { uid } from '../../../lib/uid'
 import {
+  ANALYSIS_SEED_VERSION_KEY,
   ANALYSIS_STORAGE_KEY,
   CAT_COLORS,
   type AnalysisChannel,
@@ -8,6 +9,7 @@ import {
   type Category,
   type Item,
 } from './types'
+import { ANALYSIS_SEED, ANALYSIS_SEED_VERSION } from './seed'
 
 type Action =
   | { type: 'replace'; state: AnalysisState }
@@ -50,14 +52,8 @@ function load(): AnalysisState {
   return loadRaw() ?? { groups: [], items: [], categories: [] }
 }
 
-async function fetchAnalysisSeed(): Promise<AnalysisState | null> {
-  try {
-    const res = await fetch(`${import.meta.env.BASE_URL}data/analysis.json`, { cache: 'no-cache' })
-    if (!res.ok) return null
-    return parseAnalysisShape(await res.json())
-  } catch {
-    return null
-  }
+function getAnalysisSeed(): { state: AnalysisState; version: string | null } {
+  return { state: parseAnalysisShape(ANALYSIS_SEED), version: ANALYSIS_SEED_VERSION }
 }
 
 type AnalysisGroupLike = { id: string; name: string; channels?: AnalysisChannel[] }
@@ -196,15 +192,17 @@ export function AnalysisStoreProvider({ children }: { children: ReactNode }) {
     save(state)
   }, [state])
 
-  // If localStorage was empty on first load, try to seed from public/data/analysis.json.
+  // Seed from the hard-coded ANALYSIS_SEED:
+  //   - if localStorage was empty on first load, OR
+  //   - if the bundled seed ships a new ANALYSIS_SEED_VERSION we haven't applied yet (one-shot force).
+  // After applying, we stamp localStorage so subsequent reloads leave the user's edits alone.
   useEffect(() => {
-    if (!wasEmptyRef.current) return
-    let cancelled = false
-    fetchAnalysisSeed().then((seeded) => {
-      if (cancelled || !seeded) return
-      dispatch({ type: 'replace', state: seeded })
-    })
-    return () => { cancelled = true }
+    const seeded = getAnalysisSeed()
+    const appliedVersion = localStorage.getItem(ANALYSIS_SEED_VERSION_KEY)
+    const shouldForce = seeded.version != null && seeded.version !== appliedVersion
+    if (!wasEmptyRef.current && !shouldForce) return
+    dispatch({ type: 'replace', state: seeded.state })
+    if (seeded.version) localStorage.setItem(ANALYSIS_SEED_VERSION_KEY, seeded.version)
   }, [])
 
   // If a selected channel disappears, deselect

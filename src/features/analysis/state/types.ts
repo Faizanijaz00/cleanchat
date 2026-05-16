@@ -21,6 +21,7 @@ export type AnalysisState = {
 }
 
 export const ANALYSIS_STORAGE_KEY = 'telegram-analysis-v1'
+export const ANALYSIS_SEED_VERSION_KEY = 'telegram-analysis-seed-version'
 
 export const CAT_COLORS = [
   '#ff516a', '#ffa85c', '#665fff', '#54cb68', '#28c9b7',
